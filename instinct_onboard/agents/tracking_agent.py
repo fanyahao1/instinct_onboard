@@ -245,8 +245,8 @@ class TrackerAgent(OnboardAgent):
             startup_step_size=startup_step_size,
             ros_node=self.ros_node,
             joint_target_pos=joint_target_pos,
-            action_scale=self.action_scale,  # Note: passing action_offset here sets _action_offset in ColdStartAgent due to parameter naming in init
-            action_offset=self.action_offset,  # passing action_scale here sets _action_scale
+            action_scale=self.action_scale,  # passing action_scale here sets _action_scale
+            action_offset=self.action_offset,  # passing action_offset here sets _action_offset in ColdStartAgent due to parameter naming in init
             p_gains=self.p_gains * kpkd_factor,
             d_gains=self.d_gains * kpkd_factor,
         )

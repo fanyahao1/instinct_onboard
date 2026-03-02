@@ -23,6 +23,12 @@ This is the onboard code for Project Instinct. Dsgiend for supporting the infere
 
 - Install `unitree_hg` and `unitree_go` message definitions
 
+    Clone and build [unitree_ros2](https://github.com/unitreerobotics/unitree_ros2) following its README, then source the workspace:
+    ```bash
+    source {PATH_TO_UNITREE_ROS2}/cyclonedds_ws/install/setup.bash
+    ```
+    This makes `unitree_hg` and `unitree_go` available to Python.
+
 
 ### Installation (Common)
 
