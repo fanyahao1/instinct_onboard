@@ -143,7 +143,7 @@ class OnboardAgent(ABC):
         elif hasattr(self, f"_get_{command_name}_obs"):
             self.obs_funcs[obs_name] = getattr(self, f"_get_{command_name}_obs")
             print(
-                "Warning: '_get_{command_name}_obs' for command {command_name} shall be deprecated. Please implementing your command-related observation function '_get_{command_name}_cmd_obs' instead."
+                f"Warning: '_get_{command_name}_obs' for command {command_name} shall be deprecated. Please implementing your command-related observation function '_get_{command_name}_cmd_obs' instead."
             )
         else:
             raise ValueError(
