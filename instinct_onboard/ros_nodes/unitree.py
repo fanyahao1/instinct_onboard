@@ -209,6 +209,9 @@ class UnitreeNode(RealNode):
         """Publish the joint commands to the robot motors in robot coordinates system.
         robot_coordinates_action: shape (NUM_JOINTS,), in simulation order.
         """
+        if np.isnan(target_joint_pos).any():
+            self.get_logger().error("Robot coordinates action contain NaN, Skip sending the action to the robot.")
+            return
         for sim_idx in range(self.NUM_JOINTS):
             real_idx = self.joint_map[sim_idx]
             if not self.dryrun:
@@ -220,9 +223,6 @@ class UnitreeNode(RealNode):
             self.low_cmd_buffer.motor_cmd[real_idx].kd = d_gains[sim_idx].item()
 
         self.low_cmd_buffer.crc = get_crc(self.low_cmd_buffer)
-        if np.isnan(target_joint_pos).any():
-            self.get_logger().error("Robot coordinates action contain NaN, Skip sending the action to the robot.")
-            return
         self.low_cmd_publisher.publish(self.low_cmd_buffer)
 
     def _turn_off_motors(self):

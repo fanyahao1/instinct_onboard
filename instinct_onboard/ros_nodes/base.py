@@ -207,16 +207,15 @@ class RealNode(Node):
         NOTE: when switching between agents, the last_action term should be shared between agents.
         Thus, the ros node has to update the action buffer
         """
-        # NOTE: Only calling this function currently will update self.actions for self._get_last_action_obs
+        if np.isnan(action).any():
+            self.get_logger().error("Actions contain NaN, Skip sending the action to the robot.")
+            return
         self.action[:] = action
         self.action_publisher.publish(Float32MultiArray(data=action))
         action_scaled = action * action_scale
         target_joint_pos = action_scaled + action_offset
         p_gains = np.clip(p_gains * self.kp_factor, 0.0, self.kp_clip)
         d_gains = np.clip(d_gains * self.kd_factor, 0.0, self.kd_clip)
-        if np.isnan(action).any():
-            self.get_logger().error("Actions contain NaN, Skip sending the action to the robot.")
-            return
         if self.computer_clip_torque:
             target_joint_pos = self.clip_by_torque_limit(
                 target_joint_pos,
