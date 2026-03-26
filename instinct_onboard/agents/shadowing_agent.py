@@ -12,7 +12,7 @@ from geometry_msgs.msg import PoseArray
 from instinct_onboard.agents.base import OnboardAgent
 from instinct_onboard.ros_nodes.base import RealNode
 from instinct_onboard.utils import quat_to_tan_norm_batch
-from motion_target_msgs.msg import MotionSequence
+# from motion_target_msgs.msg import MotionSequence
 
 
 class ShadowingAgent(OnboardAgent):

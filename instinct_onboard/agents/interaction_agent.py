@@ -621,7 +621,7 @@ class InteractionAgent(OnboardAgent):
         
         return motion_ref_output
 
-    def _get_joint_pos_ref_cmd_obs(self) -> np.ndarray:
+    def _get_joint_pos_ref_command_obs(self) -> np.ndarray:
         """Get reference joint positions at future frames.
         
         Returns:
@@ -637,7 +637,7 @@ class InteractionAgent(OnboardAgent):
         ref_joint_pos = self.motion_data.joint_pos[frame_idx] - self.ros_node.default_joint_pos[None, :]
         return ref_joint_pos.astype(np.float32)
 
-    def _get_joint_vel_ref_cmd_obs(self) -> np.ndarray:
+    def _get_joint_vel_ref_command_obs(self) -> np.ndarray:
         """Get reference joint velocities at future frames.
         
         Returns:
@@ -652,7 +652,7 @@ class InteractionAgent(OnboardAgent):
         
         return self.motion_data.joint_vel[frame_idx].astype(np.float32)
 
-    def _get_position_ref_cmd_obs(self) -> np.ndarray:
+    def _get_position_ref_command_obs(self) -> np.ndarray:
         """Get reference base position at future frames.
         
         Returns:
@@ -668,7 +668,7 @@ class InteractionAgent(OnboardAgent):
         # Return base position in base frame (simplified)
         return self.motion_data.base_pos[frame_idx].astype(np.float32)
 
-    def _get_rotation_ref_cmd_obs(self) -> np.ndarray:
+    def _get_rotation_ref_command_obs(self) -> np.ndarray:
         """Get reference base rotation in tangent-normal form.
         
         Returns:
@@ -686,6 +686,75 @@ class InteractionAgent(OnboardAgent):
         tannorm = quat_to_tan_norm_batch(base_quat)
         
         return tannorm.astype(np.float32)
+
+    def _get_position_b_ref_command_obs(self) -> np.ndarray:
+        """Alias for _get_position_ref_command_obs to match env.yaml command_name."""
+        return self._get_position_ref_command_obs()
+
+    # === Aliases for env.yaml naming ===
+    def _get_object_position_obs(self) -> np.ndarray:
+        """Alias for _get_object_pos_obs to match env.yaml."""
+        return self._get_object_pos_obs()
+
+    def _get_object_orientation_tannorm_obs(self) -> np.ndarray:
+        """Alias for _get_object_ori_obs to match env.yaml."""
+        return self._get_object_ori_obs()
+
+    def _get_object_position_error_obs(self) -> np.ndarray:
+        """Alias for _get_object_pos_obs (error version uses same raw value)."""
+        return self._get_object_pos_obs()
+
+    def _get_object_orientation_error_tannorm_obs(self) -> np.ndarray:
+        """Alias for _get_object_ori_obs (error version uses same raw value)."""
+        return self._get_object_ori_obs()
+
+    # === Proxy methods to ros_node for proprioception ===
+    def _get_projected_gravity_obs(self) -> np.ndarray:
+        """Proxy to ros_node's projected_gravity from IMU."""
+        return self.ros_node._get_projected_gravity_obs()
+
+    def _get_base_ang_vel_obs(self) -> np.ndarray:
+        """Proxy to ros_node's base angular velocity from IMU."""
+        return self.ros_node._get_base_ang_vel_obs()
+
+    def _get_joint_pos_rel_obs(self) -> np.ndarray:
+        """Proxy to ros_node's joint position (relative version)."""
+        return self.ros_node._get_joint_pos_obs()
+
+    def _get_joint_vel_rel_obs(self) -> np.ndarray:
+        """Proxy to ros_node's joint velocity (relative version)."""
+        return self.ros_node._get_joint_vel_rel_obs()
+
+    def _get_last_action_obs(self) -> np.ndarray:
+        """Proxy to ros_node's last action."""
+        return self.ros_node._get_last_action_obs()
+
+    # === Object reference stubs (from motion dataset) ===
+    def _get_object_reference_position_obs(self) -> np.ndarray:
+        """Get object reference position from motion data (world frame, shape (3,))."""
+        if self.motion_data is None or self.motion_data.object_data is None:
+            return np.zeros(3, dtype=np.float32)
+        cursor = min(self.motion_cursor_idx, self.motion_data.total_num_frames - 1)
+        obj_pos = self.motion_data.object_data.get("box", {}).get("pos", np.zeros(3))
+        if obj_pos.ndim == 2:
+            obj_pos = obj_pos[cursor]
+        return obj_pos.astype(np.float32)
+
+    def _get_object_reference_orientation_tannorm_obs(self) -> np.ndarray:
+        """Get object reference orientation from motion data (tan-norm, shape (6,))."""
+        if self.motion_data is None or self.motion_data.object_data is None:
+            return np.zeros(6, dtype=np.float32)
+        cursor = min(self.motion_cursor_idx, self.motion_data.total_num_frames - 1)
+        obj_quat = self.motion_data.object_data.get("box", {}).get("quat", np.zeros(4))
+        if obj_quat.ndim == 2:
+            obj_quat = obj_quat[cursor]
+        tannorm = quat_to_tan_norm_batch(obj_quat[np.newaxis, :])[0]
+        return tannorm.astype(np.float32)
+
+    # === Contact sensor stub ===
+    def _get_seat_object_contact_obs(self) -> np.ndarray:
+        """Get contact between seat/buttocks and object (placeholder, returns zeros)."""
+        return np.zeros(2, dtype=np.float32)
 
     def reset(self, motion_name: str = None):
         """Reset the agent state.
