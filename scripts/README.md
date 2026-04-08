@@ -27,11 +27,10 @@ Basic motion tracking from NPZ files (no depth perception).
 - **Usage**: `python g1_track.py --logdir /path/to/tracking/model --motion_dir /path/to/motions`
 
 ### g1_interaction.py
-Object interaction task with depth perception, motion reference, and object state tracking.
+Interaction task deployed from the sitting checkpoint truth.
 - **Agent**: InteractionAgent + WalkAgent
-- **Features**: Depth perception, motion reference, object position/orientation observations, contact force sensing
+- **Features**: Raw observation normalization, depth encoder, actor inference, motion reference tracking
 - **Usage**: `python g1_interaction.py --logdir /path/to/interaction/model --walk_logdir /path/to/walk/model --motion_dir /path/to/motions`
-- **Notes**: Object-related observations (object_pos, object_ori, wrist_object_contact) currently return zeros until motion data with object trajectories is provided
 
 ## Common Arguments
 

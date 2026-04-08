@@ -124,11 +124,15 @@ class TrackerAgent(OnboardAgent):
     def _load_all_motions(self, motion_file_dir: str):
         """Load the motion file."""
         self.all_motion_datas: dict[str, MotionData] = dict()
-        for motion_file in os.listdir(motion_file_dir):
+        for motion_file in sorted(os.listdir(motion_file_dir)):
+            if not motion_file.endswith(".npz"):
+                continue
             motion = load_motion_data(
                 os.path.join(motion_file_dir, motion_file), self.ros_node.sim_joint_names, self.target_motion_framerate
             )
             self.all_motion_datas[motion_file] = motion
+        if not self.all_motion_datas:
+            raise FileNotFoundError(f"No .npz motion files found in {motion_file_dir}")
         self.motion_data = list(self.all_motion_datas.values())[
             0
         ]  # put the first motion in the dictionary as the default motion

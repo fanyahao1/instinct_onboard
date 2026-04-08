@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
 """
-G1 Interaction Node - One-click script for interaction task deployment.
+G1 Interaction Node aligned with the sitting interaction checkpoint.
 
-A ROS2 node for controlling Unitree G1 robot using interaction agent with depth camera
-perception and object state tracking. This script integrates RealSense camera for depth-based
-perception, motion reference tracking from NPZ files, and object state observation.
+This script treats `interaction` as the sitting-updated version of the same task.
+The onboard policy therefore follows the exported sitting deployment contract:
+
+    raw policy obs -> policy normalizer -> depth slice -> 0-depth_image.onnx -> actor.onnx
 
 Features:
     - Depth perception using RealSense D435 camera
-    - InteractionAgent with depth image encoding and motion reference
-    - Object state observations (position, orientation, contact forces)
+    - InteractionAgent backed by the sitting truth checkpoint
+    - Motion reference tracking from NPZ files
     - Multiple agent modes: cold start, walk, and interaction
-    - Real-time motion tracking with joystick control
     - Visualization options for debugging
 
 Command-Line Arguments:
     Required:
-        --logdir PATH          Directory containing the trained interaction agent model
-                              (must contain exported/actor.onnx and exported/0-depth_encoder.onnx)
+        --logdir PATH          Directory containing the sitting-aligned interaction export
+                              (must contain params/env.yaml, params/agent.yaml,
+                              exported/actor.onnx, exported/0-depth_image.onnx,
+                              exported/policy_normalizer.npz)
         --walk_logdir PATH    Directory containing the walk agent model
         --motion_dir PATH     Directory containing retargeted motion files (.npz format)
 
@@ -48,7 +50,7 @@ Agent Workflow:
        - Press 'L1' from interaction agent to return to walk agent
 
     3. Interaction Agent
-       - Executes interaction motions with depth perception and object tracking
+       - Executes interaction motions with sitting-truth observations
        - Press 'A' button to match motion to current robot heading
        - Automatically switches to walk agent when motion completes (if available)
        - Otherwise turns off motors and exits
@@ -99,8 +101,8 @@ Notes:
     - Robot configuration: G1_29Dof_TorsoBase (29 degrees of freedom)
     - Joint position protection ratio: 2.0
     - Camera runs in a separate process for better performance
-    - Motion data with object trajectories is currently not yet available;
-      object-related observations return zeros until data is provided
+    - Interaction deployment does not use object-state policy inputs anymore
+    - The default interaction logdir points to the sitting export
 """
 
 import os
@@ -120,18 +122,25 @@ from instinct_onboard.agents.walk_agent import WalkAgent
 from instinct_onboard.ros_nodes.realsense import UnitreeRsCameraNode
 
 MAIN_LOOP_FREQUENCY_CHECK_INTERVAL = 500
+SITTING_INTERACTION_LOGDIR = "/home/fan/dev3/project-instinct/InstinctLab/logs/instinct_rl/g1_interaction/sitting"
+INTERACTION_REQUIRED_FILES = (
+    "params/env.yaml",
+    "params/agent.yaml",
+    "exported/actor.onnx",
+    "exported/0-depth_image.onnx",
+    "exported/policy_normalizer.npz",
+)
+
+
+def validate_interaction_logdir(logdir: str) -> None:
+    """Fail fast if the interaction sitting export is incomplete."""
+    missing = [os.path.join(logdir, relpath) for relpath in INTERACTION_REQUIRED_FILES if not os.path.exists(os.path.join(logdir, relpath))]
+    if missing:
+        raise FileNotFoundError("Interaction logdir is missing required sitting artifacts: " + ", ".join(missing))
 
 
 class G1InteractionNode(UnitreeRsCameraNode):
-    """ROS2 node for G1 interaction task.
-    
-    This node manages multiple agents for the interaction workflow:
-    - cold_start: Initial pose transition
-    - walk: Basic walking behavior
-    - interaction: Object manipulation with motion reference and depth perception
-    
-    The node handles agent switching based on joystick input and motion completion.
-    """
+    """ROS2 node for G1 interaction task."""
 
     def __init__(
         self,
@@ -397,6 +406,7 @@ class G1InteractionNode(UnitreeRsCameraNode):
 
 def main(args):
     """Main entry point for the G1 interaction node."""
+    validate_interaction_logdir(args.logdir)
     rclpy.init()
 
     node = G1InteractionNode(
@@ -459,27 +469,27 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="G1 Interaction Node - Interaction task with depth perception and object tracking"
+        description="G1 Interaction Node aligned with the sitting interaction export"
     )
     
     # Required arguments
     parser.add_argument(
         "--logdir",
         type=str,
-        required=True,
-        help="Directory to load the interaction agent from (must contain exported/actor.onnx)",
+        help="Directory to load the sitting-aligned interaction agent from",
+        default=SITTING_INTERACTION_LOGDIR,
     )
     parser.add_argument(
         "--walk_logdir",
         type=str,
-        required=True,
         help="Directory to load the walk agent from (must contain exported/actor.onnx)",
+        default="/home/fan/dev3/project-instinct/InstinctLab/logs/instinct_rl/g1_locomotion_flat/20260322_134921_G1Flat_feetAirTime1.00_standStill0.80_actionRate0.40_jointDeviationKnee0.20",
     )
     parser.add_argument(
         "--motion_dir",
         type=str,
-        required=True,
         help="Directory containing motion files (.npz format)",
+        default="/home/fan/dev3/project-instinct/InstinctLab/assets_datasets/interaction/output_npz_29dof_with_object/chair",
     )
     
     # Optional arguments
